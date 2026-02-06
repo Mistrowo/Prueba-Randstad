@@ -367,7 +367,8 @@ class Kernel extends ConsoleKernel
 ```
 
 **Configuracion Cron:**
-Esto unicamente para un servidor si es que se necesita mas adelante, es paso opcional pero igualmente se dejo :)
+Esto es  unicamente para un servidor si es que se necesita mas adelante, es paso opcional pero igualmente lo dejo :) ya que hay que modificar el crontab 
+
 ```bash
 * * * * * cd /ruta/al/proyecto && php artisan schedule:run >> /dev/null 2>&1
 ```
@@ -376,7 +377,7 @@ Esto unicamente para un servidor si es que se necesita mas adelante, es paso opc
 
 **Ubicacion:** `app/Http/Requests/GetDollarHistoryRequest.php`
 
-**Proposito:** Validar y sanitizar los parametros de entrada del endpoint.
+**Proposito:** Validarlos parametros de entrada del endpoint.
 
 **Implementacion:**
 
@@ -877,64 +878,6 @@ export default defineConfig({
 
 ---
 
-## 6. CUMPLIMIENTO DE REQUERIMIENTOS
-
-### 6.1 Requerimientos Backend
-
-| ID | Requerimiento | Estado | Implementacion |
-|----|---------------|--------|----------------|
-| BE-01 | Consumir API Mindicador.cl `https://mindicador.cl/api/dolar/{yyyy}` | CUMPLIDO | `MindicadorService.php` realiza peticiones HTTP GET |
-| BE-02 | Almacenar valores del periodo 2024-2025 | CUMPLIDO | Comando `dolar:sync` sincroniza ambos años en `db_dolar_monitor` |
-| BE-03 | Ejecucion automatica cada hora | CUMPLIDO | `Kernel.php` configura `$schedule->command('dolar:sync')->hourly()` |
-| BE-04 | Ejecucion on-demand via Artisan | CUMPLIDO | Comando `php artisan dolar:sync` con opcion `--years` |
-| BE-05 | Endpoint con rango de fechas en JSON | CUMPLIDO | `GET /api/dolar-history?fecha_inicio=X&fecha_fin=Y` |
-
-### 6.2 Requerimientos Frontend
-
-| ID | Requerimiento | Estado | Implementacion |
-|----|---------------|--------|----------------|
-| FE-01 | Consumir endpoint del backend | CUMPLIDO | `api.ts` usa Axios para `/api/dolar-history` |
-| FE-02 | Estado con Context o Redux | CUMPLIDO | `DollarContext.tsx` con Context API + useReducer |
-| FE-03 | Mostrar ultimos 30 dias por defecto | CUMPLIDO | `DateFilter.tsx` inicializa con fecha actual menos 30 dias |
-| FE-04 | Filtro de fechas modificable | CUMPLIDO | DatePicker de MUI permite seleccion de rango |
-| FE-05 | Grafico de fluctuacion | CUMPLIDO | `DollarChart.tsx` con LineChart de Recharts |
-| FE-06 | Tabla con columnas Fecha y Valor | CUMPLIDO | `DollarTable.tsx` con tabla MUI |
-| FE-07 | Modificar valor de fila | CUMPLIDO | Edicion via SweetAlert2 + dispatch `UPDATE_VALUE` **(solo estado frontend)** |
-| FE-08 | Eliminar registro del estado | CUMPLIDO | Eliminacion + dispatch `DELETE_VALUE` **(solo estado frontend)** |
-| FE-09 | Actualizar grafico y tabla al cambiar estado | CUMPLIDO | Ambos componentes consumen el mismo Context |
-| FE-10 | Usar Design System (MUI) | CUMPLIDO | Material-UI v5 |
-
-### 6.3 IMPORTANTE: Edicion y Eliminacion Solo en Frontend
-
-El requerimiento original especifica:
-
-> *"modificar el valor del dolar de una fecha especifica o eliminar el registro completo **del estado de la aplicacion**"*
-
-**Implementacion:**
-
-Las operaciones de **editar** y **eliminar** fueron implementadas **UNICAMENTE a nivel de estado del frontend (Context API de React)**:
-
-| Operacion | Afecta Estado React | Afecta Base de Datos |
-|-----------|---------------------|----------------------|
-| Editar valor | SI | **NO** |
-| Eliminar registro | SI | **NO** |
-| Cargar datos | SI | Solo lectura (SELECT) |
-
-**Comportamiento:**
-
-1. Usuario edita un valor → Estado se actualiza → UI refleja el cambio
-2. Usuario elimina un registro → Estado se actualiza → UI refleja el cambio
-3. Usuario recarga la pagina → **Se cargan datos originales** desde backend
-4. Usuario cambia filtro de fechas → **Se consultan datos originales**
-
-**Justificacion:**
-- Cumple con el requerimiento literal ("del estado de la aplicacion")
-- Mantiene integridad de datos historicos oficiales
-- No requiere endpoints PUT/DELETE
-- Demuestra manejo de estado reactivo en React
-
----
-
 ## 7. DECISIONES TECNICAS
 
 ### 7.1 Fecha como Identificador Unico
@@ -948,77 +891,6 @@ Las operaciones de **editar** y **eliminar** fueron implementadas **UNICAMENTE a
 **Decision:** Usar Context API con useReducer.
 
 **Justificacion:** Menor complejidad, sin dependencias adicionales, patron similar a Redux.
-
-### 7.3 Operaciones CRUD Solo en Estado Frontend
-
-**Decision:** Editar y eliminar solo modifican el estado de React, no la base de datos.
-
-**Justificacion:** El requerimiento especifica "del estado de la aplicacion". Mantiene integridad de datos historicos.
-
----
-
-## 8. DIAGRAMAS
-
-### 8.1 Flujo de Edicion/Eliminacion (Solo Frontend)
-
-```
-+------------------------------------------------------------------------+
-|                    FLUJO DE EDICION/ELIMINACION                        |
-|                    (SOLO AFECTA ESTADO FRONTEND)                       |
-+------------------------------------------------------------------------+
-|                                                                        |
-|   Usuario                DollarTable              Context              |
-|      |                       |                       |                 |
-|      | Click Edit/Delete     |                       |                 |
-|      |---------------------->|                       |                 |
-|      |                       |                       |                 |
-|      |                       | dispatch(UPDATE/DELETE)                 |
-|      |                       |---------------------->|                 |
-|      |                       |                       |                 |
-|      |                       |                  Reducer                |
-|      |                       |                  actualiza              |
-|      |                       |                  state.data             |
-|      |                       |                       |                 |
-|      |                       |<----------------------|                 |
-|      |                       |   Re-render           |                 |
-|      |<----------------------|                       |                 |
-|      |   UI Actualizada      |                       |                 |
-|      |                       |                       |                 |
-|      |   +--------------------------------------------------+          |
-|      |   | NOTA: NO hay comunicacion con Backend/BD         |          |
-|      |   | Los datos en db_dolar_monitor NO se modifican    |          |
-|      |   +--------------------------------------------------+          |
-|                                                                        |
-+------------------------------------------------------------------------+
-```
-
-### 8.2 Diagrama de Componentes
-
-```
-                          +------------------------+
-                          |        main.tsx        |
-                          +-----------+------------+
-                                      |
-                                      v
-                          +-----------+------------+
-                          |    DollarProvider      |
-                          |   (Context + Reducer)  |
-                          +-----------+------------+
-                                      |
-                                      v
-                          +-----------+------------+
-                          |        App.tsx         |
-                          +-----------+------------+
-                                      |
-              +-----------------------+-----------------------+
-              |                       |                       |
-              v                       v                       v
-    +---------+--------+    +---------+--------+    +---------+--------+
-    |   DateFilter     |    |   DollarChart    |    |   DollarTable    |
-    +------------------+    +------------------+    +------------------+
-```
-
----
 
 ## 9. ANEXOS
 
@@ -1056,12 +928,6 @@ SESSION_DRIVER=file
 
 ---
 
-## 10. RESUMEN
 
-- **Backend:** Laravel 10 + MySQL (`db_dolar_monitor`)
-- **Frontend:** React 18 + TypeScript + MUI + Recharts
-- **Sincronizacion:** Automatica (cada hora) y manual via Artisan
-- **Edicion/Eliminacion:** **Solo a nivel de estado frontend, NO modifica la base de datos**
 
----
 
