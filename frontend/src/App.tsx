@@ -30,14 +30,12 @@ const theme = createTheme({
 function Dashboard() {
   const { state, dispatch } = useDollar();
   
-  // Rango inicial configurado para tus datos existentes
   const [start, setStart] = useState('2024-11-01');
   const [end, setEnd] = useState('2024-12-31');
   
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const fetchData = async () => {
-    // Validación básica de fechas
     if (new Date(start) > new Date(end)) {
       Swal.fire('Error', 'La fecha de inicio no puede ser mayor a la fin', 'error');
       return;
@@ -75,7 +73,6 @@ function Dashboard() {
     <Container maxWidth={false} sx={{ py: 4, px: { xs: 2, md: 5 } }}>
       <CssBaseline />
       
-      {/* Header adaptable */}
       <Box sx={{ 
         display: 'flex', 
         flexDirection: { xs: 'column', md: 'row' }, 
@@ -85,7 +82,7 @@ function Dashboard() {
       }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#0052cc' }}>
-            Randstad <span style={{ color: '#172b4d' }}>Dólar</span>
+            Monitoreo <span style={{ color: '#172b4d' }}>Dólar</span>
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Gestión y visualización de indicadores económicos
@@ -110,7 +107,6 @@ function Dashboard() {
         </Paper>
       </Box>
 
-      {/* Grid de Contenido */}
       <Box sx={{ 
         display: 'grid', 
         gridTemplateColumns: { xs: '1fr', lg: '7fr 3fr' }, 
@@ -118,7 +114,6 @@ function Dashboard() {
         alignItems: 'start'
       }}>
         
-        {/* Gráfico: Ocupa el 70% */}
         <Paper sx={{ p: 3, height: '550px', display: 'flex', flexDirection: 'column' }}>
           <Typography variant="h6" sx={{ mb: 3, fontWeight: 700 }}>Evolución del Valor</Typography>
           <Box sx={{ flexGrow: 1, width: '100%', minHeight: 0 }}>
@@ -126,7 +121,6 @@ function Dashboard() {
           </Box>
         </Paper>
 
-        {/* Tabla: Ocupa el 30% con altura controlada */}
         <Paper sx={{ 
           height: '550px', 
           display: 'flex', 
